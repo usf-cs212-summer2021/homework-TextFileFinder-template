@@ -1,5 +1,5 @@
 # homework
-src/text/resources/text/symbolic
+src/test/resources/text/symbolic
 
 # https://github.com/github/gitignore/blob/master/Global/Eclipse.gitignore
 .metadata
