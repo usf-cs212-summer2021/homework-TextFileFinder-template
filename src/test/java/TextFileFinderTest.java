@@ -16,12 +16,10 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer.MethodName;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
-import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -198,7 +196,6 @@ public class TextFileFinderTest {
 	@Nested
 	@Tag("approach")
 	@TestMethodOrder(OrderAnnotation.class)
-	@TestInstance(Lifecycle.PER_CLASS)
 	public class D_ApproachTests {
 		/*
 		 * These only approximately determine if a lambda function was used and the
@@ -262,10 +259,12 @@ public class TextFileFinderTest {
 		}
 		
 		/**
-		 * Fails all approach tests if all other tests are not yet passing.
+		 * Causes this group of tests to fail if the other non-approach tests are
+		 * not yet passing.
 		 */
-		@BeforeAll
-		public void enable() {
+		@Test
+		@Order(6)
+		public void testOthersPassing() {
 			var request = LauncherDiscoveryRequestBuilder.request()
 					.selectors(DiscoverySelectors.selectClass(TextFileFinderTest.class))
 					.filters(TagFilter.excludeTags("approach"))
@@ -281,7 +280,7 @@ public class TextFileFinderTest {
 			launcher.execute(request);
 
 			Assertions.assertEquals(0, listener.getSummary().getTotalFailureCount(),
-					"Other tests must pass before appoarch tests pass!");
+					"Must pass other tests to earn credit for approach group!");
 		}
 	}
 	
