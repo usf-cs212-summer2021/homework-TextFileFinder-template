@@ -6,6 +6,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -14,41 +16,36 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer.MethodName;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.platform.engine.discovery.DiscoverySelectors;
+import org.junit.platform.launcher.TagFilter;
+import org.junit.platform.launcher.core.LauncherDiscoveryRequestBuilder;
+import org.junit.platform.launcher.core.LauncherFactory;
+import org.junit.platform.launcher.listeners.SummaryGeneratingListener;
 
 /**
  * Tests the {@link TextFileFinder} class.
  *
  * @author CS 212 Software Development
  * @author University of San Francisco
- * @version Spring 2021
+ * @version Summer 2021
  */
 @TestMethodOrder(MethodName.class)
 public class TextFileFinderTest {
-	/** Path to directory of text files */
-	public static final Path root = Path.of("src", "test", "resources", "text", "simple");
-
-	/**
-	 * Runs before any tests to make sure environment is setup.
-	 */
-	@BeforeAll
-	public static void checkEnvironment() {
-		Assumptions.assumeTrue(Files.isDirectory(root));
-		Assumptions.assumeTrue(Files.exists(root.resolve("hello.txt")));
-	}
-
 	/**
 	 * Tests that text extensions are detected properly.
 	 */
 	@Nested
 	@TestMethodOrder(OrderAnnotation.class)
 	public class A_TextExtensionTests {
-
 		/**
 		 * Tests files that SHOULD be considered text files.
 		 *
@@ -84,7 +81,6 @@ public class TextFileFinderTest {
 	@Nested
 	@TestMethodOrder(OrderAnnotation.class)
 	public class B_FindListTests {
-
 		/**
 		 * Tests the list has the expected number of paths.
 		 *
@@ -138,7 +134,6 @@ public class TextFileFinderTest {
 	@Nested
 	@TestMethodOrder(OrderAnnotation.class)
 	public class C_AlternateFindTests {
-
 		/**
 		 * Tests the general {@link TextFileFinder#find(Path, Predicate)} method
 		 * works as expected.
@@ -195,14 +190,15 @@ public class TextFileFinderTest {
 
 			Assertions.assertEquals(expected.count(), actual.count());
 		}
-
 	}
 
 	/**
 	 * Tests that the expected approach is taken.
 	 */
 	@Nested
+	@Tag("approach")
 	@TestMethodOrder(OrderAnnotation.class)
+	@TestInstance(Lifecycle.PER_CLASS)
 	public class D_ApproachTests {
 		/*
 		 * These only approximately determine if a lambda function was used and the
@@ -264,5 +260,40 @@ public class TextFileFinderTest {
 			Assertions.assertFalse(source.contains("import java.io.File;"));
 			Assertions.assertFalse(source.contains(".toFile()"));
 		}
+		
+		/**
+		 * Fails all approach tests if all other tests are not yet passing.
+		 */
+		@BeforeAll
+		public void enable() {
+			var request = LauncherDiscoveryRequestBuilder.request()
+					.selectors(DiscoverySelectors.selectClass(TextFileFinderTest.class))
+					.filters(TagFilter.excludeTags("approach"))
+					.build();
+
+			var launcher = LauncherFactory.create();
+			var listener = new SummaryGeneratingListener();
+
+			Logger logger = Logger.getLogger("org.junit.platform.launcher");
+			logger.setLevel(Level.SEVERE);
+
+			launcher.registerTestExecutionListeners(listener);
+			launcher.execute(request);
+
+			Assertions.assertEquals(0, listener.getSummary().getTotalFailureCount(),
+					"Other tests must pass before appoarch tests pass!");
+		}
+	}
+	
+	/** Path to directory of text files */
+	public static final Path root = Path.of("src", "test", "resources", "text", "simple");
+
+	/**
+	 * Runs before any tests to make sure environment is setup.
+	 */
+	@BeforeAll
+	public static void checkEnvironment() {
+		Assumptions.assumeTrue(Files.isDirectory(root));
+		Assumptions.assumeTrue(Files.exists(root.resolve("hello.txt")));
 	}
 }
